@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud Identifier — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #080c10;
+    --bg2:      #0d1117;
+    --bg3:      #141b24;
+    --border:   rgba(255,255,255,0.07);
+    --accent:   #00d4ff;
+    --accent2:  #0099bb;
+    --danger:   #ff4757;
+    --warn:     #ffa502;
+    --ok:       #2ed573;
+    --text:     #e8edf2;
+    --muted:    #6b7a8d;
+    --font-display: 'Syne', sans-serif;
+    --font-mono:    'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Grid noise overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Login screen ── */
+  #login-screen {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    background: var(--bg);
+  }
+
+  .login-box {
+    width: 360px;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    padding: 40px;
+    position: relative;
+  }
+
+  .login-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  .login-logo {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .login-logo span { color: var(--accent); }
+
+  .login-sub {
+    color: var(--muted);
+    font-size: 11px;
+    margin-bottom: 32px;
+    letter-spacing: 0.05em;
+  }
+
+  .field { margin-bottom: 16px; }
+
+  .field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .field input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .field input:focus { border-color: var(--accent); }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 12px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    margin-top: 8px;
+  }
+
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .login-error {
+    color: var(--danger);
+    font-size: 11px;
+    margin-top: 12px;
+    text-align: center;
+    min-height: 16px;
+  }
+
+  /* ── Dashboard layout ── */
+  #dashboard { display: none; position: relative; z-index: 1; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    position: sticky; top: 0; z-index: 10;
+  }
+
+  .header-logo {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+  }
+
+  .header-logo span { color: var(--accent); }
+
+  .header-right {
+    display: flex; align-items: center; gap: 20px;
+  }
+
+  .status-dot {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--muted);
+  }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 6px var(--ok);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+
+  .btn-logout {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 6px 14px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+
+  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+  .last-update {
+    font-size: 10px; color: var(--muted);
+    letter-spacing: 0.03em;
+  }
+
+  /* ── Main grid ── */
+  main {
+    padding: 24px 28px;
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: auto;
+  }
+
+  /* ── Stat cards ── */
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-color, var(--accent)), transparent);
+    opacity: 0.4;
+  }
+
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--accent-color, var(--accent));
+  }
+
+  .stat-sub {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* ── Section titles ── */
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Cloud distribution ── */
+  .dist-panel {
+    grid-column: span 2;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 20px;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .dist-bar-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .dist-label {
+    width: 110px;
+    font-size: 11px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dist-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: var(--bg3);
+    position: relative;
+  }
+
+  .dist-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+    width: 0;
+  }
+
+  .dist-count {
+    font-size: 11px;
+    color: var(--muted);
+    width: 28px;
+    text-align: right;
+  }
+
+  /* ── Alerts panel ── */
+  .alerts-panel {
+    grid-column: span 3;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 20px;
+    animation: fadeUp 0.5s 0.1s ease both;
+  }
+
+  .alert-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .alert-item:last-child { border-bottom: none; }
+
+  .alert-badge {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .badge-critical { background: rgba(255,71,87,0.15); color: var(--danger); border: 1px solid rgba(255,71,87,0.3); }
+  .badge-high     { background: rgba(255,165,2,0.15);  color: var(--warn);   border: 1px solid rgba(255,165,2,0.3); }
+  .badge-medium   { background: rgba(0,212,255,0.1);   color: var(--accent); border: 1px solid rgba(0,212,255,0.2); }
+  .badge-low      { background: rgba(46,213,115,0.1);  color: var(--ok);     border: 1px solid rgba(46,213,115,0.2); }
+
+  .alert-title {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.4;
+    flex: 1;
+  }
+
+  .alert-time {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .btn-resolve {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .btn-resolve:hover { border-color: var(--ok); color: var(--ok); }
+
+  .no-alerts {
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+    padding: 24px 0;
+  }
+
+  /* ── Readings table ── */
+  .readings-panel {
+    grid-column: span 5;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 20px;
+    animation: fadeUp 0.5s 0.2s ease both;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 0 12px 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+
+  td {
+    padding: 9px 12px 9px 0;
+    font-size: 11px;
+    color: var(--text);
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .cloud-pill {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-weight: 500;
+  }
+
+  .pill-cumulonimbus { background: rgba(255,71,87,0.15);  color: #ff6b7a; }
+  .pill-cumulus      { background: rgba(0,212,255,0.12);  color: #33ddff; }
+  .pill-stratus      { background: rgba(255,165,2,0.12);  color: #ffbb33; }
+  .pill-cirrus       { background: rgba(200,200,200,0.1); color: #c8d0da; }
+  .pill-clear        { background: rgba(46,213,115,0.12); color: #5fffaa; }
+  .pill-unknown      { background: rgba(107,122,141,0.2); color: var(--muted); }
+
+  .conf-bar {
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+
+  .conf-track {
+    width: 48px; height: 3px;
+    background: var(--bg3);
+    position: relative;
+    display: inline-block;
+  }
+
+  .conf-fill {
+    position: absolute; top: 0; left: 0; height: 100%;
+    background: var(--accent);
+  }
+
+  .storm-tag {
+    display: inline-block;
+    font-size: 9px;
+    padding: 2px 6px;
+    background: rgba(255,71,87,0.2);
+    color: var(--danger);
+    border: 1px solid rgba(255,71,87,0.3);
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Sensors panel ── */
+  .sensors-panel {
+    grid-column: span 5;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 20px;
+    animation: fadeUp 0.5s 0.3s ease both;
+  }
+
+  .sensor-row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+
+  .sensor-row:last-child { border-bottom: none; }
+
+  .sensor-status {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .s-online  { background: var(--ok);    box-shadow: 0 0 6px var(--ok); }
+  .s-offline { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+  .s-degraded{ background: var(--warn);  box-shadow: 0 0 6px var(--warn); }
+
+  .sensor-name { font-size: 12px; flex: 1; }
+  .sensor-type { font-size: 10px; color: var(--muted); width: 100px; }
+  .sensor-coords { font-size: 10px; color: var(--muted); width: 160px; font-family: var(--font-mono); }
+
+  /* ── Loading / error ── */
+  .loading {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; color: var(--muted); padding: 40px;
+    font-size: 12px;
+  }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .refresh-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .countdown {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Login ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Cloud<span>ID</span></div>
+    <div class="login-sub">ISS CLOUD PATTERN MONITOR // GS 2025</div>
+    <div class="field">
+      <label>Usuário</label>
+      <input type="text" id="username" value="admin" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <input type="password" id="password" value="admin123">
+    </div>
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ── Dashboard ── -->
+<div id="dashboard">
+  <header>
+    <div class="header-logo">Cloud<span>ID</span> <span style="color:var(--muted);font-weight:400;font-size:13px">// ISS Monitor</span></div>
+    <div class="header-right">
+      <div class="status-dot"><div class="dot"></div> API online</div>
+      <span class="last-update" id="last-update">—</span>
+      <span class="countdown" id="countdown"></span>
+      <button class="refresh-btn" onclick="loadAll()">↺ Atualizar</button>
+      <button class="btn-logout" onclick="logout()">Sair</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Stat cards -->
+    <div class="stat-card" style="--accent-color: var(--accent); animation-delay: 0s">
+      <div class="stat-label">Sensores totais</div>
+      <div class="stat-value" id="s-total">—</div>
+      <div class="stat-sub" id="s-online-sub">—</div>
+    </div>
+    <div class="stat-card" style="--accent-color: var(--ok); animation-delay: 0.05s">
+      <div class="stat-label">Leituras 24h</div>
+      <div class="stat-value" id="s-readings">—</div>
+      <div class="stat-sub">últimas 24 horas</div>
+    </div>
+    <div class="stat-card" style="--accent-color: var(--warn); animation-delay: 0.1s">
+      <div class="stat-label">Alertas ativos</div>
+      <div class="stat-value" id="s-alerts">—</div>
+      <div class="stat-sub" id="s-storm-sub">—</div>
+    </div>
+    <div class="stat-card" style="--accent-color: #a78bfa; animation-delay: 0.15s; grid-column: span 2">
+      <div class="stat-label">Classe dominante (24h)</div>
+      <div class="stat-value" id="s-dominant" style="font-size:22px; color: #a78bfa">—</div>
+      <div class="stat-sub" id="s-dominant-sub">—</div>
+    </div>
+
+    <!-- Distribution -->
+    <div class="dist-panel">
+      <div class="section-title">Distribuição de nuvens</div>
+      <div id="dist-content"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="alerts-panel">
+      <div class="section-title">Alertas ativos</div>
+      <div id="alerts-content"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+    </div>
+
+    <!-- Readings -->
+    <div class="readings-panel">
+      <div class="section-title">Últimas leituras</div>
+      <div id="readings-content"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+    </div>
+
+    <!-- Sensors -->
+    <div class="sensors-panel">
+      <div class="section-title">Sensores</div>
+      <div id="sensors-content"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+    </div>
+  </main>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+let token = localStorage.getItem('cloud_token') || '';
+let refreshInterval = null;
+let countdown = 30;
+
+// ── Auth ──────────────────────────────────────
+
+async function doLogin() {
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  const user = document.getElementById('username').value.trim();
+  const pass = document.getElementById('password').value;
+
+  btn.disabled = true;
+  btn.textContent = 'Entrando...';
+  err.textContent = '';
+
+  try {
+    const res = await fetch(`${API}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, password: pass }),
+    });
+
+    if (!res.ok) { err.textContent = 'Usuário ou senha incorretos.'; return; }
+
+    const data = await res.json();
+    token = data.access_token;
+    localStorage.setItem('cloud_token', token);
+    showDashboard();
+  } catch (e) {
+    err.textContent = 'Não foi possível conectar à API (localhost:8000).';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') doLogin();
+});
+
+function logout() {
+  localStorage.removeItem('cloud_token');
+  token = '';
+  clearInterval(refreshInterval);
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+function showDashboard() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  loadAll();
+  startAutoRefresh();
+}
+
+// ── API helpers ───────────────────────────────
+
+async function api(path) {
+  const res = await fetch(`${API}${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) { logout(); throw new Error('Unauthorized'); }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function apiPost(path, body) {
+  const res = await fetch(`${API}${path}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (res.status === 401) { logout(); throw new Error('Unauthorized'); }
+  return res.json();
+}
+
+// ── Load all data ─────────────────────────────
+
+async function loadAll() {
+  try {
+    const [summary, sensors] = await Promise.all([
+      api('/dashboard/summary'),
+      api('/sensors/'),
+    ]);
+    renderSummary(summary);
+    renderDist(summary.class_distribution);
+    renderAlerts(summary.recent_alerts);
+    renderReadings(summary.latest_readings);
+    renderSensors(sensors);
+    document.getElementById('last-update').textContent =
+      'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
+  } catch (e) {
+    if (e.message !== 'Unauthorized') console.error(e);
+  }
+}
+
+// ── Renderers ─────────────────────────────────
+
+function renderSummary(s) {
+  document.getElementById('s-total').textContent    = s.total_sensors;
+  document.getElementById('s-online-sub').textContent = `${s.online_sensors} online`;
+  document.getElementById('s-readings').textContent = s.total_readings_24h;
+  document.getElementById('s-alerts').textContent   = s.active_alerts;
+  document.getElementById('s-storm-sub').textContent =
+    s.storm_alerts > 0 ? `⚡ ${s.storm_alerts} de tempestade` : 'nenhuma tempestade';
+
+  // Dominant class
+  const dist = s.class_distribution;
+  const dominant = Object.entries(dist).sort((a,b) => b[1]-a[1])[0];
+  if (dominant) {
+    document.getElementById('s-dominant').textContent = dominant[0];
+    document.getElementById('s-dominant-sub').textContent = `${dominant[1]} leituras`;
+  }
+}
+
+const CLASS_COLORS = {
+  'Cumulonimbus': '#ff4757',
+  'Cumulus':      '#00d4ff',
+  'Stratus':      '#ffa502',
+  'Cirrus':       '#c8d0da',
+  'Clear Sky':    '#2ed573',
+  'Unknown':      '#6b7a8d',
+};
+
+function renderDist(dist) {
+  const el = document.getElementById('dist-content');
+  const total = Object.values(dist).reduce((a,b) => a+b, 0);
+  if (!total) { el.innerHTML = '<div class="no-alerts" style="color:var(--muted)">Sem dados no período</div>'; return; }
+
+  const sorted = Object.entries(dist).sort((a,b) => b[1]-a[1]);
+  el.innerHTML = sorted.map(([cls, count]) => {
+    const pct = Math.round((count / total) * 100);
+    const col = CLASS_COLORS[cls] || '#6b7a8d';
+    return `
+      <div class="dist-bar-row">
+        <div class="dist-label">${cls}</div>
+        <div class="dist-bar-bg">
+          <div class="dist-bar-fill" data-w="${pct}" style="background:${col}; width:0"></div>
+        </div>
+        <div class="dist-count">${count}</div>
+      </div>`;
+  }).join('');
+
+  // Animate bars
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.dist-bar-fill').forEach(el => {
+      el.style.width = el.dataset.w + '%';
+    });
+  });
+}
+
+function renderAlerts(alerts) {
+  const el = document.getElementById('alerts-content');
+  if (!alerts || !alerts.length) {
+    el.innerHTML = '<div class="no-alerts">✓ Nenhum alerta ativo</div>';
+    return;
+  }
+  el.innerHTML = alerts.map(a => `
+    <div class="alert-item" id="alert-${a.id}">
+      <span class="alert-badge badge-${a.severity}">${a.severity}</span>
+      <div style="flex:1">
+        <div class="alert-title">${a.title}</div>
+        <div class="alert-time">${formatTime(a.created_at)}</div>
+      </div>
+      ${!a.resolved ? `<button class="btn-resolve" onclick="resolveAlert('${a.id}')">Resolver</button>` : ''}
+    </div>`).join('');
+}
+
+async function resolveAlert(id) {
+  try {
+    await apiPost('/alerts/resolve', { alert_id: id });
+    const el = document.getElementById(`alert-${id}`);
+    if (el) { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300); }
+    const cur = parseInt(document.getElementById('s-alerts').textContent) || 0;
+    document.getElementById('s-alerts').textContent = Math.max(0, cur - 1);
+  } catch(e) { console.error(e); }
+}
+
+function renderReadings(readings) {
+  const el = document.getElementById('readings-content');
+  if (!readings || !readings.length) {
+    el.innerHTML = '<div class="no-alerts" style="color:var(--muted)">Sem leituras recentes</div>';
+    return;
+  }
+  el.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Classe</th>
+        <th>Confiança</th>
+        <th>Cobertura</th>
+        <th>Textura</th>
+        <th>Bordas</th>
+        <th>Risco</th>
+        <th>Horário</th>
+      </tr></thead>
+      <tbody>
+        ${readings.map(r => `
+          <tr>
+            <td><span class="cloud-pill ${pillClass(r.cloud_class)}">${r.cloud_class}</span></td>
+            <td>
+              <div class="conf-bar">
+                <div class="conf-track"><div class="conf-fill" style="width:${r.confidence*100}%"></div></div>
+                ${pct(r.confidence)}
+              </div>
+            </td>
+            <td>${pct(r.coverage)}</td>
+            <td>${r.texture_score.toFixed(1)}</td>
+            <td>${r.edge_density.toFixed(4)}</td>
+            <td>${r.is_storm_risk ? '<span class="storm-tag">⚡ STORM</span>' : '<span style="color:var(--muted)">—</span>'}</td>
+            <td style="color:var(--muted)">${formatTime(r.timestamp)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function renderSensors(sensors) {
+  const el = document.getElementById('sensors-content');
+  if (!sensors.length) { el.innerHTML = '<div class="no-alerts" style="color:var(--muted)">Nenhum sensor registrado</div>'; return; }
+  el.innerHTML = sensors.map(s => `
+    <div class="sensor-row">
+      <div class="sensor-status s-${s.status}"></div>
+      <div class="sensor-name">${s.name}</div>
+      <div class="sensor-type">${s.sensor_type}</div>
+      <div class="sensor-coords">${s.latitude.toFixed(2)}°, ${s.longitude.toFixed(2)}° / ${s.altitude_km}km</div>
+      <div style="font-size:10px; color:var(--muted); margin-left:auto">${s.status}</div>
+    </div>`).join('');
+}
+
+// ── Helpers ───────────────────────────────────
+
+function pillClass(cls) {
+  const map = {
+    'Cumulonimbus': 'pill-cumulonimbus',
+    'Cumulus':      'pill-cumulus',
+    'Stratus':      'pill-stratus',
+    'Cirrus':       'pill-cirrus',
+    'Clear Sky':    'pill-clear',
+  };
+  return map[cls] || 'pill-unknown';
+}
+
+function pct(v) { return (v * 100).toFixed(0) + '%'; }
+
+function formatTime(iso) {
+  const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+  return d.toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+    timeZone: 'America/Sao_Paulo'
+  });
+}
+
+// ── Auto refresh every 30s ────────────────────
+
+function startAutoRefresh() {
+  countdown = 30;
+  clearInterval(refreshInterval);
+  refreshInterval = setInterval(() => {
+    countdown--;
+    document.getElementById('countdown').textContent = `↺ ${countdown}s`;
+    if (countdown <= 0) { loadAll(); countdown = 30; }
+  }, 1000);
+}
+
+// ── Init ──────────────────────────────────────
+if (token) {
+  // Try to restore session
+  api('/auth/me').then(() => showDashboard()).catch(() => { token = ''; });
+}
+</script>
+</body>
+</html>
