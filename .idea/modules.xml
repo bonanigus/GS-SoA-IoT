@@ -2,7 +2,11 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+<<<<<<< HEAD
       <module fileurl="file://$PROJECT_DIR$/.idea/cloud-dashboard.iml" filepath="$PROJECT_DIR$/.idea/cloud-dashboard.iml" />
+=======
+      <module fileurl="file://$PROJECT_DIR$/.idea/PythonProject1.iml" filepath="$PROJECT_DIR$/.idea/PythonProject1.iml" />
+>>>>>>> 9d0c626aa07548c3a2503b2927f4248c8dd00b13
     </modules>
   </component>
 </project>
