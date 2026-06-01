@@ -83,9 +83,11 @@ cloud-identifier/
 
 ## Integrantes
 
-- **Nome 1** — RM XXXXX
-- **Nome 2** — RM XXXXX
-- **Nome 3** — RM XXXXX
+- **Gustavo Bonani Favero Marcos** — RM553493
+- **Gustavo Manganelli Felex** — RM554242
+- **Vinicius Issa Gois** — RM553814
+- **Vinicius Caetano dos Santos** — RM552904
+- **Wesley Leopoldino do Nascimento Vieira** — RM553496
 
 ---
 
